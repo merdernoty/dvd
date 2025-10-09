@@ -114,6 +114,8 @@ func runDVDEffect(config *Config) {
 
 	printBanner(config)
 
+	startTime := time.Now()
+
 	measurementCounter := 0
 	userMovementDetected := false
 	checkInterval := time.Duration(config.CheckInterval) * time.Millisecond
@@ -124,7 +126,7 @@ func runDVDEffect(config *Config) {
 		select {
 		case <-stop:
 			fmt.Println("\n🛑 Завершено вручную (Ctrl+C).")
-			printStats(iterations, time.Since(lastCheckTime))
+			printStats(iterations, time.Since(startTime))
 			return
 
 		default:
@@ -140,7 +142,7 @@ func runDVDEffect(config *Config) {
 					dist := distance(beforeX, beforeY, afterX, afterY)
 					if dist > config.Sensitivity {
 						fmt.Printf("\nОбнаружено движение мыши — выход.\n")
-						printStats(iterations, time.Since(lastCheckTime))
+						printStats(iterations, time.Since(startTime))
 						return
 					}
 				}
@@ -156,10 +158,6 @@ func runDVDEffect(config *Config) {
 			actualX, actualY := robotgo.GetMousePos()
 			deviation := distance(actualX, actualY, targetX, targetY)
 
-			if config.Verbose && iterations%100 == 0 {
-					x, y, deviation, iterations)
-			}
-
 			if deviation > config.DeviationLimit {
 				measurementCounter++
 				if !userMovementDetected {
@@ -172,7 +170,7 @@ func runDVDEffect(config *Config) {
 
 			if measurementCounter >= 3 {
 				fmt.Printf("\nОбнаружено вмешательство — выход.\n")
-				printStats(iterations, time.Since(lastCheckTime))
+				printStats(iterations, time.Since(startTime))
 				return
 			}
 
@@ -203,20 +201,36 @@ func printBanner(config *Config) {
 	fmt.Println("╔════════════════════════════════════════════╗")
 	fmt.Println("║      🎬 DVD Screen Saver Effect 🎬        ║")
 	fmt.Println("╚════════════════════════════════════════════╝")
-	fmt.Printf("\nНастройки:\n")
+	fmt.Printf("\n⚙️  Настройки:\n")
 	fmt.Printf("   • Скорость: %d пикселей/шаг\n", config.Speed)
 	fmt.Printf("   • Чувствительность: %.1f px\n", config.Sensitivity)
 	fmt.Printf("   • Интервал проверки: %d мс\n", config.CheckInterval)
 	fmt.Printf("   • Лимит отклонения: %.1f px\n", config.DeviationLimit)
-	fmt.Println("\nЗапуск... (Ctrl+C или пошевелите мышью для выхода)")
+	fmt.Println("\n🚀 Запуск... (Ctrl+C или пошевелите мышью для выхода)")
 	fmt.Println()
 }
 
 func printStats(iterations int, duration time.Duration) {
-	fmt.Println("\nСтатистика:")
+	fmt.Println("\n📊 Статистика:")
 	fmt.Printf("   • Итераций: %d\n", iterations)
-	fmt.Printf("   • Время работы: %v\n", duration.Round(time.Millisecond))
-	fmt.Println("\nДо встречи!")
+
+	totalSeconds := int(duration.Seconds())
+	hours := totalSeconds / 3600
+	minutes := (totalSeconds % 3600) / 60
+	seconds := totalSeconds % 60
+	milliseconds := duration.Milliseconds() % 1000
+
+	if hours > 0 {
+		fmt.Printf("   • Время работы: %d ч %d мин %d сек\n", hours, minutes, seconds)
+	} else if minutes > 0 {
+		fmt.Printf("   • Время работы: %d мин %d сек\n", minutes, seconds)
+	} else if seconds > 0 {
+		fmt.Printf("   • Время работы: %d сек %d мс\n", seconds, milliseconds)
+	} else {
+		fmt.Printf("   • Время работы: %d мс\n", milliseconds)
+	}
+
+	fmt.Println("\n👋 До встречи!")
 }
 
 func distance(x1, y1, x2, y2 int) float64 {
