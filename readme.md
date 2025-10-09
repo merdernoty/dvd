@@ -4,4 +4,4 @@
 
 ## 🚀 Установка
 ```bash
-go install github.com/merdernoty/dvd-cursor@latest
+go install github.com/merdernoty/dvd@latest
