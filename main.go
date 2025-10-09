@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	version = "1.0.0"
+	version = "1.0.1"
 )
 
 type Config struct {
@@ -201,12 +201,12 @@ func printBanner(config *Config) {
 	fmt.Println("╔════════════════════════════════════════════╗")
 	fmt.Println("║      🎬 DVD Screen Saver Effect 🎬        ║")
 	fmt.Println("╚════════════════════════════════════════════╝")
-	fmt.Printf("\n⚙️  Настройки:\n")
+	fmt.Printf("\n Настройки:\n")
 	fmt.Printf("   • Скорость: %d пикселей/шаг\n", config.Speed)
 	fmt.Printf("   • Чувствительность: %.1f px\n", config.Sensitivity)
 	fmt.Printf("   • Интервал проверки: %d мс\n", config.CheckInterval)
 	fmt.Printf("   • Лимит отклонения: %.1f px\n", config.DeviationLimit)
-	fmt.Println("\n🚀 Запуск... (Ctrl+C или пошевелите мышью для выхода)")
+	fmt.Println("\n Запуск... (Ctrl+C или пошевелите мышью для выхода)")
 	fmt.Println()
 }
 
@@ -230,7 +230,7 @@ func printStats(iterations int, duration time.Duration) {
 		fmt.Printf("   • Время работы: %d мс\n", milliseconds)
 	}
 
-	fmt.Println("\n👋 До встречи!")
+	fmt.Println("\nДо встречи!")
 }
 
 func distance(x1, y1, x2, y2 int) float64 {
