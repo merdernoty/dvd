@@ -139,7 +139,7 @@ func runDVDEffect(config *Config) {
 				if beforeX != afterX || beforeY != afterY {
 					dist := distance(beforeX, beforeY, afterX, afterY)
 					if dist > config.Sensitivity {
-						fmt.Printf("\nОбнаружено движение мыши (%.1f px) — выход.\n", dist)
+						fmt.Printf("\nОбнаружено движение мыши — выход.\n")
 						printStats(iterations, time.Since(lastCheckTime))
 						return
 					}
@@ -157,7 +157,6 @@ func runDVDEffect(config *Config) {
 			deviation := distance(actualX, actualY, targetX, targetY)
 
 			if config.Verbose && iterations%100 == 0 {
-				fmt.Printf("\rПозиция: (%4d, %4d) | Отклонение: %.1f px | Итераций: %d",
 					x, y, deviation, iterations)
 			}
 
@@ -172,7 +171,7 @@ func runDVDEffect(config *Config) {
 			}
 
 			if measurementCounter >= 3 {
-				fmt.Printf("\nОбнаружено вмешательство (отклонение: %.1f px) — выход.\n", deviation)
+				fmt.Printf("\nОбнаружено вмешательство — выход.\n")
 				printStats(iterations, time.Since(lastCheckTime))
 				return
 			}
