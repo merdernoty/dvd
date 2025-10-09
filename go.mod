@@ -1,4 +1,4 @@
-module github.com/merdernoty/dvd-cursor
+module github.com/merdernoty/dvd
 
 go 1.25.1
 
