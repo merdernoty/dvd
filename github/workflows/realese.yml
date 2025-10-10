@@ -1,0 +1,174 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build for ${{ matrix.os }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          # Linux
+          - os: linux
+            runner: ubuntu-latest
+            goos: linux
+            goarch: amd64
+            output: dvd-linux-amd64
+
+          # macOS Intel
+          - os: macos-intel
+            runner: macos-13
+            goos: darwin
+            goarch: amd64
+            output: dvd-macos-amd64
+
+          # macOS Apple Silicon
+          - os: macos-arm
+            runner: macos-latest
+            goos: darwin
+            goarch: arm64
+            output: dvd-macos-arm64
+
+          # Windows
+          - os: windows
+            runner: windows-latest
+            goos: windows
+            goarch: amd64
+            output: dvd-windows-amd64.exe
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      # Linux dependencies
+      - name: Install Linux dependencies
+        if: matrix.os == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            gcc \
+            libc6-dev \
+            libx11-dev \
+            xorg-dev \
+            libxtst-dev \
+            libpng++-dev \
+            xcb \
+            libxcb-xkb-dev \
+            x11-xkb-utils \
+            libx11-xcb-dev \
+            libxkbcommon-x11-dev \
+            libxkbcommon-dev
+
+      # macOS dependencies
+      - name: Install macOS dependencies
+        if: startsWith(matrix.os, 'macos')
+        run: |
+          brew install libpng
+
+      # Windows не требует дополнительных зависимостей
+      # MinGW уже установлен в runner
+
+      - name: Get dependencies
+        run: go mod download
+
+      - name: Build
+        env:
+          CGO_ENABLED: 1
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          go build -v -ldflags="-s -w" -o ${{ matrix.output }} .
+
+      - name: Test executable
+        if: matrix.os != 'macos-arm'
+        run: |
+          ./${{ matrix.output }} --version
+        shell: bash
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.output }}
+          path: ${{ matrix.output }}
+          retention-days: 1
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+
+      - name: Display structure
+        run: ls -R ./artifacts
+
+      - name: Prepare release files
+        run: |
+          mkdir -p release
+          find ./artifacts -type f -exec mv {} ./release/ \;
+          ls -la ./release
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ./release/*
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          body: |
+            ## DVD Screen Saver v${{ github.ref_name }}
+
+            Эффект DVD-логотипа для курсора мыши 🎬
+
+            ### Скачать:
+
+            - **Windows**: `dvd-windows-amd64.exe`
+            - **macOS Intel**: `dvd-macos-amd64`
+            - **macOS Apple Silicon**: `dvd-macos-arm64`
+            - **Linux**: `dvd-linux-amd64`
+
+            ### Установка:
+
+            **macOS/Linux:**
+            ```bash
+            chmod +x dvd-*
+            ./dvd-* --help
+            ```
+
+            **Windows:**
+            Просто запустите `dvd-windows-amd64.exe`
+
+            ### Использование:
+
+            ```bash
+            # Запуск с настройками по умолчанию
+            dvd
+
+            # Быстрая скорость
+            dvd -s 20
+
+            # Показать версию
+            dvd -v
+
+            # Подробный режим
+            dvd --verbose
+            ```
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

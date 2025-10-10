@@ -6,8 +6,6 @@ import (
 	"math"
 	"math/rand"
 	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/go-vgo/robotgo"
@@ -106,11 +104,9 @@ func runDVDEffect(config *Config) {
 	} else {
 		x, y = screenWidth/2, screenHeight/2
 	}
-
 	dx, dy := config.Speed, config.Speed
 
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+	stop := setupSignalHandler()
 
 	printBanner(config)
 
