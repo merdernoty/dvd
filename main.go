@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	version = "1.0.1"
+	version = "1.0.2"
 )
 
 type Config struct {
@@ -44,14 +44,14 @@ func parseFlags() *Config {
 	flag.IntVar(&config.Speed, "speed", 10, "Скорость движения курсора (пикселей за шаг)")
 	flag.IntVar(&config.Speed, "s", 10, "Скорость движения курсора (короткая версия)")
 
-	flag.Float64Var(&config.Sensitivity, "sensitivity", 5.0, "Чувствительность обнаружения движения мыши")
-	flag.Float64Var(&config.Sensitivity, "sens", 5.0, "Чувствительность (короткая версия)")
+	flag.Float64Var(&config.Sensitivity, "sensitivity", 15.0, "Чувствительность обнаружения движения мыши")
+	flag.Float64Var(&config.Sensitivity, "sens", 15.0, "Чувствительность (короткая версия)")
 
-	flag.IntVar(&config.CheckInterval, "interval", 50, "Интервал проверки движения (миллисекунды)")
-	flag.IntVar(&config.CheckInterval, "i", 50, "Интервал проверки (короткая версия)")
+	flag.IntVar(&config.CheckInterval, "interval", 100, "Интервал проверки движения (миллисекунды)")
+	flag.IntVar(&config.CheckInterval, "i", 100, "Интервал проверки (короткая версия)")
 
-	flag.Float64Var(&config.DeviationLimit, "deviation", 100.0, "Лимит отклонения для обнаружения вмешательства")
-	flag.Float64Var(&config.DeviationLimit, "d", 100.0, "Лимит отклонения (короткая версия)")
+	flag.Float64Var(&config.DeviationLimit, "deviation", 150.0, "Лимит отклонения для обнаружения вмешательства")
+	flag.Float64Var(&config.DeviationLimit, "d", 150.0, "Лимит отклонения (короткая версия)")
 
 	flag.BoolVar(&config.ShowVersion, "version", false, "Показать версию программы")
 	flag.BoolVar(&config.ShowVersion, "v", false, "Показать версию (короткая версия)")
@@ -122,6 +122,9 @@ func runDVDEffect(config *Config) {
 	lastCheckTime := time.Now()
 	iterations := 0
 
+	consecutiveDetections := 0
+	requiredDetections := 3
+
 	for {
 		select {
 		case <-stop:
@@ -134,29 +137,49 @@ func runDVDEffect(config *Config) {
 			iterations++
 
 			if currentTime.Sub(lastCheckTime) >= checkInterval {
+				robotgo.MoveMouse(x, y)
+				time.Sleep(20 * time.Millisecond)
+
 				beforeX, beforeY := robotgo.GetMousePos()
-				time.Sleep(30 * time.Millisecond)
+
+				time.Sleep(50 * time.Millisecond)
+
 				afterX, afterY := robotgo.GetMousePos()
 
-				if beforeX != afterX || beforeY != afterY {
-					dist := distance(beforeX, beforeY, afterX, afterY)
-					if dist > config.Sensitivity {
-						fmt.Printf("\nОбнаружено движение мыши — выход.\n")
+				expectedDist := distance(beforeX, beforeY, x, y)
+				actualDist := distance(afterX, afterY, x, y)
+				movement := distance(beforeX, beforeY, afterX, afterY)
+
+				if config.Verbose {
+					fmt.Printf("\r🔍 Проверка: ожид=%.1f, факт=%.1f, движ=%.1f | Позиция: (%4d, %4d) | Итераций: %d",
+						expectedDist, actualDist, movement, x, y, iterations)
+				}
+
+				if movement > config.Sensitivity {
+					consecutiveDetections++
+
+					if config.Verbose {
+						fmt.Printf("\n⚠️  Обнаружено движение: %.1f px (попытка %d/%d)\n",
+							movement, consecutiveDetections, requiredDetections)
+					}
+
+					if consecutiveDetections >= requiredDetections {
+						fmt.Printf("\nПодтверждено движение мыши — выход.\n")
 						printStats(iterations, time.Since(startTime))
 						return
 					}
+				} else {
+					consecutiveDetections = 0
 				}
 
 				lastCheckTime = currentTime
+			} else {
+				robotgo.MoveMouse(x, y)
 			}
 
-			targetX, targetY := x, y
-
-			robotgo.MoveMouse(x, y)
 			time.Sleep(1 * time.Millisecond)
-
 			actualX, actualY := robotgo.GetMousePos()
-			deviation := distance(actualX, actualY, targetX, targetY)
+			deviation := distance(actualX, actualY, x, y)
 
 			if deviation > config.DeviationLimit {
 				measurementCounter++
@@ -168,8 +191,8 @@ func runDVDEffect(config *Config) {
 				userMovementDetected = false
 			}
 
-			if measurementCounter >= 3 {
-				fmt.Printf("\nОбнаружено вмешательство — выход.\n")
+			if measurementCounter >= 5 {
+				fmt.Printf("\n⚠️  Обнаружено вмешательство (большое отклонение) — выход.\n")
 				printStats(iterations, time.Since(startTime))
 				return
 			}
@@ -201,12 +224,12 @@ func printBanner(config *Config) {
 	fmt.Println("╔════════════════════════════════════════════╗")
 	fmt.Println("║      🎬 DVD Screen Saver Effect 🎬        ║")
 	fmt.Println("╚════════════════════════════════════════════╝")
-	fmt.Printf("\n Настройки:\n")
+	fmt.Printf("\n⚙️  Настройки:\n")
 	fmt.Printf("   • Скорость: %d пикселей/шаг\n", config.Speed)
 	fmt.Printf("   • Чувствительность: %.1f px\n", config.Sensitivity)
 	fmt.Printf("   • Интервал проверки: %d мс\n", config.CheckInterval)
 	fmt.Printf("   • Лимит отклонения: %.1f px\n", config.DeviationLimit)
-	fmt.Println("\n Запуск... (Ctrl+C или пошевелите мышью для выхода)")
+	fmt.Println("\n🚀 Запуск... (Ctrl+C или пошевелите мышью для выхода)")
 	fmt.Println()
 }
 
@@ -230,7 +253,7 @@ func printStats(iterations int, duration time.Duration) {
 		fmt.Printf("   • Время работы: %d мс\n", milliseconds)
 	}
 
-	fmt.Println("\nДо встречи!")
+	fmt.Println("\n👋 До встречи!")
 }
 
 func distance(x1, y1, x2, y2 int) float64 {
