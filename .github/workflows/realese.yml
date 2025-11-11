@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
   workflow_dispatch:
 
 jobs:
@@ -19,13 +19,6 @@ jobs:
             goos: linux
             goarch: amd64
             output: dvd-linux-amd64
-
-          # macOS Intel
-          - os: macos-intel
-            runner: macos-13
-            goos: darwin
-            goarch: amd64
-            output: dvd-macos-amd64
 
           # macOS Apple Silicon
           - os: macos-arm
@@ -48,7 +41,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: "1.22"
 
       # Linux dependencies
       - name: Install Linux dependencies
@@ -140,7 +133,6 @@ jobs:
             ### Скачать:
 
             - **Windows**: `dvd-windows-amd64.exe`
-            - **macOS Intel**: `dvd-macos-amd64`
             - **macOS Apple Silicon**: `dvd-macos-arm64`
             - **Linux**: `dvd-linux-amd64`
 
