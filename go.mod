@@ -2,7 +2,10 @@ module github.com/merdernoty/dvd
 
 go 1.25.1
 
-require github.com/go-vgo/robotgo v0.110.8
+require (
+	github.com/go-vgo/robotgo v0.110.8
+	golang.org/x/sys v0.37.0
+)
 
 require (
 	github.com/dblohm7/wingoes v0.0.0-20250822163801-6d8e6105c62d // indirect
@@ -30,5 +33,4 @@ require (
 	golang.org/x/exp v0.0.0-20251009144603-d2f985daa21b // indirect
 	golang.org/x/image v0.32.0 // indirect
 	golang.org/x/net v0.46.0 // indirect
-	golang.org/x/sys v0.37.0 // indirect
 )

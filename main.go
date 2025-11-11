@@ -7,8 +7,6 @@ import (
 	"math/rand"
 	"os"
 	"time"
-
-	"github.com/go-vgo/robotgo"
 )
 
 const (
@@ -23,6 +21,7 @@ type Config struct {
 	ShowVersion    bool
 	Verbose        bool
 	RandomStart    bool
+	RunMinutes     int
 }
 
 func main() {
@@ -58,6 +57,9 @@ func parseFlags() *Config {
 
 	flag.BoolVar(&config.RandomStart, "random", true, "Случайная начальная позиция")
 	flag.BoolVar(&config.RandomStart, "r", true, "Случайная позиция (короткая версия)")
+
+	flag.IntVar(&config.RunMinutes, "time", 0, "Авто-выход через указанное количество минут (0 — без таймера)")
+	flag.IntVar(&config.RunMinutes, "t", 0, "Авто-выход через указанное количество минут")
 
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, `DVD Screen Saver v%s
@@ -96,7 +98,7 @@ func parseFlags() *Config {
 func runDVDEffect(config *Config) {
 	rand.Seed(time.Now().UnixNano())
 
-	screenWidth, screenHeight := robotgo.GetScreenSize()
+	screenWidth, screenHeight := getScreenSize()
 
 	var x, y int
 	if config.RandomStart {
@@ -111,6 +113,8 @@ func runDVDEffect(config *Config) {
 	printBanner(config)
 
 	startTime := time.Now()
+	hasTimeLimit := config.RunMinutes > 0
+	timeLimit := time.Duration(config.RunMinutes) * time.Minute
 
 	measurementCounter := 0
 	userMovementDetected := false
@@ -132,15 +136,21 @@ func runDVDEffect(config *Config) {
 			currentTime := time.Now()
 			iterations++
 
+			if hasTimeLimit && currentTime.Sub(startTime) >= timeLimit {
+				fmt.Printf("\n⏱ Установленное время (%d мин) истекло — выход.\n", config.RunMinutes)
+				printStats(iterations, currentTime.Sub(startTime))
+				return
+			}
+
 			if currentTime.Sub(lastCheckTime) >= checkInterval {
-				robotgo.MoveMouse(x, y)
+				moveMouse(x, y)
 				time.Sleep(20 * time.Millisecond)
 
-				beforeX, beforeY := robotgo.GetMousePos()
+				beforeX, beforeY := getMousePos()
 
 				time.Sleep(50 * time.Millisecond)
 
-				afterX, afterY := robotgo.GetMousePos()
+				afterX, afterY := getMousePos()
 
 				expectedDist := distance(beforeX, beforeY, x, y)
 				actualDist := distance(afterX, afterY, x, y)
@@ -170,11 +180,11 @@ func runDVDEffect(config *Config) {
 
 				lastCheckTime = currentTime
 			} else {
-				robotgo.MoveMouse(x, y)
+				moveMouse(x, y)
 			}
 
 			time.Sleep(1 * time.Millisecond)
-			actualX, actualY := robotgo.GetMousePos()
+			actualX, actualY := getMousePos()
 			deviation := distance(actualX, actualY, x, y)
 
 			if deviation > config.DeviationLimit {
@@ -225,6 +235,11 @@ func printBanner(config *Config) {
 	fmt.Printf("   • Чувствительность: %.1f px\n", config.Sensitivity)
 	fmt.Printf("   • Интервал проверки: %d мс\n", config.CheckInterval)
 	fmt.Printf("   • Лимит отклонения: %.1f px\n", config.DeviationLimit)
+	if config.RunMinutes > 0 {
+		fmt.Printf("   • Таймер: %d мин\n", config.RunMinutes)
+	} else {
+		fmt.Printf("   • Таймер: выключен\n")
+	}
 	fmt.Println("\n🚀 Запуск... (Ctrl+C или пошевелите мышью для выхода)")
 	fmt.Println()
 }
